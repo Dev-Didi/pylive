@@ -19,14 +19,14 @@ from .exceptions import LiveConnectionError
 # people using `pylive` with `liblo` if they also happen to have `pythonosc`
 # installed. Since the pythonosc support is still a bit shaky, I don't think
 # it makes sense as a default yet.
-PYLIVE_BACKEND = os.environ.get('PYLIVE_BACKEND', 'liblo')
+PYLIVE_BACKEND = 'pythonosc'
 
 supported_backends = ['pythonosc', 'liblo']
 if PYLIVE_BACKEND not in supported_backends:
     warnings.warn('PYLIVE_BACKEND="{}" not in supported backends: {}'.format(
         PYLIVE_BACKEND, supported_backends
     ))
-    PYLIVE_BACKEND = 'pythonosc'
+    PYLIVE_BACKEND = 'pythonosc' # set as default to skip attempting to use liblo. Can refactor the control flow later
 
 OSC_BACKEND = None
 if PYLIVE_BACKEND == 'pythonosc':
@@ -44,9 +44,9 @@ if PYLIVE_BACKEND == 'pythonosc':
         )
         PYLIVE_BACKEND = 'liblo'
 
-if PYLIVE_BACKEND == 'liblo':
-    import liblo
-    OSC_BACKEND = 'liblo'
+#if PYLIVE_BACKEND == 'liblo':
+#    import liblo
+#    OSC_BACKEND = 'liblo'
 
 assert OSC_BACKEND is not None
 
@@ -83,7 +83,7 @@ class Query(LoggingObject):
         live.cmd(path, *args)
     """
 
-    def __init__(self, address=("localhost", 9000), listen_port=9001):
+    def __init__(self, address=("127.0.0.1", 11000), listen_port=11001): # these are the ports used by AbletonOSC. changed here for simplicity
         self.beat_callback = None
         self.startup_callback = None
         self.listen_port = listen_port
