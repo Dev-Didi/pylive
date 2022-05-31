@@ -182,11 +182,11 @@ class Set(LoggingObject):
 
     @name_cache
     def get_tempo(self):
-        return self.live.query("/live/tempo")[0]
+        return self.live.query("/live/song/get/tempo")[0]
 
     @name_cache
     def set_tempo(self, value):
-        self.live.cmd("/live/tempo", value)
+        self.live.cmd("/live/song/set/tempo", value)
 
     tempo = property(get_tempo, set_tempo, doc="Global tempo")
     
@@ -196,11 +196,11 @@ class Set(LoggingObject):
 
     @name_cache
     def get_quantization(self):
-        return self.live.query("/live/quantization")[0]
+        return self.live.query("/live/song/get/quantization")[0]
 
     @name_cache
     def set_quantization(self, value):
-        self.live.cmd("/live/quantization", value)
+        self.live.cmd("/live/song/set/quantization", value)
 
     quantization = property(get_quantization, set_quantization, doc="Global quantization")
     
@@ -210,11 +210,11 @@ class Set(LoggingObject):
 
     def get_time(self):
         """ Return the current time position in the Arrangement view, in beats. """
-        return self.live.query("/live/time")[0]
+        return self.live.query("/live/song/get/current_song_time")[0]
 
     def set_time(self, value):
         """ Set the current time position in the Arrangement view, in beats. """
-        self.live.cmd("/live/time", value)
+        self.live.cmd("/live/song/set/current_song_time", value)
 
     time = property(get_time, set_time, doc="Current time position (beats)")
 
@@ -225,11 +225,11 @@ class Set(LoggingObject):
 
     def get_overdub(self):
         """ Return the global overdub setting. """
-        value = self.live.query("/live/state")
+        value = self.live.query("/live/song/get/arrangement_overdub")
         return value[1]
 
     def set_overdub(self, value):
-        self.live.cmd("/live/overdub", value)
+        self.live.cmd("/live/song/set/arrangement_overdub", value)
 
     overdub = property(get_overdub, set_overdub)
 
@@ -240,7 +240,9 @@ class Set(LoggingObject):
     @property
     def state(self):
         """ Return the global state tuple: (tempo, overdub) """
-        return self.live.query("/live/state")
+        tempo = self.get_tempo()
+        overdub = self.get_overdub()
+        return (tempo,overdub)
 
     #------------------------------------------------------------------------
     # /live/undo
@@ -248,11 +250,11 @@ class Set(LoggingObject):
     #------------------------------------------------------------------------
 
     def undo(self):
-        """ Undo the last operation. """
+        """ Undo the last operation. (not working with AbletonOSC yet)"""
         self.live.cmd("/live/undo")
 
     def redo(self):
-        """ Redo the last undone operation. """
+        """ Redo the last undone operation. (not working with AbletonOSC yet)"""
         self.live.cmd("/live/redo")
 
     #------------------------------------------------------------------------
@@ -260,13 +262,13 @@ class Set(LoggingObject):
     # /live/next/cue
     #------------------------------------------------------------------------
 
-    def prev_cue(self):
-        """ Jump to the previous cue. """
-        self.live.cmd("/live/prev/cue")
+    # def prev_cue(self):
+    #     """ Jump to the previous cue. (not working with AbletonOSC yet)"""
+    #     self.live.cmd("/live/prev/cue")
 
-    def next_cue(self):
-        """ Jump to the next cue. """
-        self.live.cmd("/live/next/cue")
+    # def next_cue(self):
+    #     """ Jump to the next cue. (not working with AbletonOSC yet)"""
+    #     self.live.cmd("/live/next/cue")
 
     #------------------------------------------------------------------------
     # /live/play
@@ -281,16 +283,17 @@ class Set(LoggingObject):
         """ Start the song playing. If reset is given, begin at the cue point. """
         if reset:
             # play from start
-            self.live.cmd("/live/play")
+            self.live.cmd("/live/song/start_playing")
         else:
             # continue playing
-            self.live.cmd("/live/play/continue")
+            self.live.cmd("/live/song/continue_playing")
 
     def play_clip(self, track_index, clip_index):
-        self.live.cmd("/live/play/clipslot", track_index, clip_index)
+        self.live.cmd("/live/clip/fire", track_index, clip_index)
 
-    def play_scene(self, scene_index):
-        self.live.cmd("/live/play/scene", scene_index)
+    # def play_scene(self, scene_index):
+    #     """(not working with AbletonOSC yet)"""
+    #     self.live.cmd("/live/play/scene", scene_index)
 
     #------------------------------------------------------------------------
     # /live/stop
@@ -299,22 +302,23 @@ class Set(LoggingObject):
     #------------------------------------------------------------------------
 
     def stop(self):
-        self.live.cmd("/live/stop")
+        self.live.cmd("/live/song/stop_playing")
 
     def stop_clip(self, track_index, clip_index):
-        self.live.cmd("/live/stop/clip", track_index, clip_index)
+        self.live.cmd("/live/clip/stop", track_index, clip_index)
 
     def stop_track(self, track_index):
-        self.live.cmd("/live/stop/track", track_index)
+        self.live.cmd("/live/track/stop_all_clips", track_index)
 
     #------------------------------------------------------------------------
     # /live/scenes
     #------------------------------------------------------------------------
 
-    @property
-    def num_scenes(self):
-        """ Return the total number of scenes present (even if empty). """
-        return self.live.query("/live/scenes")[0]
+    # @property
+    # def num_scenes(self):
+    #     """ Return the total number of scenes present (even if empty). """
+    #     """(not working with AbletonOSC yet)"""
+    #     return self.live.query("/live/scenes")[0]
 
     #------------------------------------------------------------------------
     # /live/tracks
@@ -323,66 +327,73 @@ class Set(LoggingObject):
     @property
     def num_tracks(self):
         """ Return the total number of tracks. """
-        return self.live.query("/live/tracks")[0]
+        # oddly seemingly this is missing from AbletonOSC docs... Probably high priority to be added.
+        return self.live.query("/live/song/get/num_tracks")[0]
+
 
     #------------------------------------------------------------------------
-    # /live/scene
+    # /live/scene (All scene interactions are missing from AbletonOSC apart from creation)
     #------------------------------------------------------------------------
 
-    def get_current_scene(self):
-        """ Return the index of the currently-selected scene index. """
-        return self.live.query("/live/scene")[0]
+    # def get_current_scene(self):
+    #     """ Return the index of the currently-selected scene index. """
+    # """(not working with AbletonOSC yet)"""
+    #     return self.live.query("/live/scene")[0]
 
-    def set_current_scene(self, value):
-        """ Set the currently-selected scene index. """
-        self.live.cmd("/live/scene", value)
+    # def set_current_scene(self, value):
+    #     """ Set the currently-selected scene index. """
+    # """(not working with AbletonOSC yet)"""
+    #     self.live.cmd("/live/scene", value)
         
     def create_scene(self, scene_index):
         """ Creates a new scene by an index. if -1 the scene is created at the end. """
-        self.live.cmd("/live/scene/create", scene_index)
+        self.live.cmd("/live/song/create_scene", scene_index)
 
-    current_scene = property(get_current_scene, set_current_scene)
+    # current_scene = property(get_current_scene, set_current_scene)
 
     #------------------------------------------------------------------------
     # /live/name/scene
     #------------------------------------------------------------------------
 
-    @property
-    def scene_names(self):
-        """ Return a list of all scene names."""
-        #------------------------------------------------------------------------
-        # /live/name/scene breaks over a certain number of scenes but 
-        # sceneblock seems resilient - so use that instead.
-        #------------------------------------------------------------------------
-        scene_count = self.num_scenes
-        rv = self.live.query("/live/name/sceneblock", 0, scene_count)
-        return rv
-    get_scene_names = scene_names
+    # @property
+    # def scene_names(self):
+    #     """ Return a list of all scene names."""
+    #     #------------------------------------------------------------------------
+    #     # /live/name/scene breaks over a certain number of scenes but 
+    #     # sceneblock seems resilient - so use that instead.
+    #     #------------------------------------------------------------------------
+    #     scene_count = self.num_scenes
+    #     rv = self.live.query("/live/name/sceneblock", 0, scene_count)
+    #     return rv
+    # get_scene_names = scene_names
 
-    def get_scene_name(self, index):
-        """ Return the name of the scene given by index. """
-        return self.live.query("/live/name/scene", index)
+    # def get_scene_name(self, index):
+    #     """ Return the name of the scene given by index. """
+    #     return self.live.query("/live/name/scene", index)
 
-    def set_scene_name(self, index, name):
-        """ Set the name of a scene. """
-        self.live.cmd("/live/name/scene", index, name)
+    # def set_scene_name(self, index, name):
+    #     """ Set the name of a scene. """
+    #     self.live.cmd("/live/name/scene", index, name)
 
     #------------------------------------------------------------------------
     # /live/name/track
     # /live/name/trackblock
     #------------------------------------------------------------------------
 
-    def get_track_names(self, offset=None, count=None):
+    def get_track_names(self, offset=0, count=None):
         """ Return all track names. If offset and count are given, return names
         within this range. """
+        rv = []
         if count is None:
-            rv = self.live.query("/live/name/track")
-            rv = [ rv[a] for a in range(1, len(rv), 2) ]
-            return rv
+            track_count = self.num_tracks
+            # TODO: add check for offset < track_count
+            for i in range(offset,track_count):
+                rv.append(self.live.query("/live/track/get/name",i))
         else:
-            # /live/name/trackblock does not return indices, just names.
-            rv = self.live.query("/live/name/trackblock", offset, count)
-            return rv
+            while offset < count:
+                rv.append(self.live.query("/live/track/get/name", offset))
+                offset += 1 
+        return rv
 
     @property
     def track_names(self):
@@ -391,11 +402,11 @@ class Set(LoggingObject):
 
     def get_track_name(self, index):
         """ Return a given track's name. """
-        return self.live.query("/live/name/track", index)
+        return self.live.query("/live/track/get/name", index)
 
     def set_track_name(self, index, value):
         """ Set a given track's name. """
-        self.live.cmd("/live/name/track", index, value)
+        self.live.cmd("/live/track/set/name", index, value)
 
     #------------------------------------------------------------------------
     # /live/name/clip
@@ -404,48 +415,48 @@ class Set(LoggingObject):
 
     def get_clip_names(self, track, offset, count):
         """ Return a list of a given set of clip names. """
-        return self.live.query("/live/name/clipblock", track, offset, 1, count)
+        return self.live.query("/live/track/get/clips_name", track)
 
     def get_clip_name(self, track, index):
         """ Return a specific clip name. """
-        return self.live.query("/live/name/clip", track, index)[2]
+        return self.live.query("/live/clip/get/name", track, index)
 
     def set_clip_name(self, track, index, name):
         """ Set a given clip's name. """
-        self.live.cmd("/live/name/clip", track, index, name)
+        self.live.cmd("/live/clip/get/name", track, index, name)
 
 
     #------------------------------------------------------------------------
-    # /live/arm
+    # /live/arm (not in AlbetonOSC)
     #------------------------------------------------------------------------
 
-    def get_track_arm(self, track_index):
-        """ Return the armed status of the given track index. """
-        return self.live.query("/live/arm", track_index)[1]
+    # def get_track_arm(self, track_index):
+    #     """ Return the armed status of the given track index. """
+    #     return self.live.query("/live/arm", track_index)[1]
 
-    def set_track_arm(self, track_index, arm):
-        """ Set the armed status of the given track index. """
-        self.live.cmd("/live/arm", track_index, arm)
+    # def set_track_arm(self, track_index, arm):
+    #     """ Set the armed status of the given track index. """
+    #     self.live.cmd("/live/arm", track_index, arm)
 
     #------------------------------------------------------------------------
     # /live/mute
     #------------------------------------------------------------------------
 
     def get_track_mute(self, track_index):
-        return self.live.query("/live/mute", track_index)[1]
+        return self.live.query("/live/track/get/mute", track_index)[1]
 
     def set_track_mute(self, track_index, mute):
-        self.live.cmd("/live/mute", track_index, mute)
+        self.live.cmd("/live/track/set/mute", track_index, mute)
 
     #------------------------------------------------------------------------
     # /live/solo
     #------------------------------------------------------------------------
 
     def get_track_solo(self, track_index):
-        return self.live.query("/live/solo", track_index)[1]
+        return self.live.query("/live/track/get/solo", track_index)[1]
 
     def set_track_solo(self, track_index, solo):
-        self.live.cmd("/live/solo", track_index, solo)
+        self.live.cmd("/live/track/set/solo", track_index, solo)
 
     #------------------------------------------------------------------------
     # /live/volume
@@ -453,11 +464,11 @@ class Set(LoggingObject):
 
     def get_track_volume(self, track_index):
         """ Return the volume of the given track index (0..1). """
-        return self.live.query("/live/volume", track_index)[1]
+        return self.live.query("/live/track/get/volume", track_index)[1]
 
     def set_track_volume(self, track_index, volume):
         """ Set the volume of the given track index (0..1). """
-        self.live.cmd("/live/volume", track_index, volume)
+        self.live.cmd("/live/track/set/volume", track_index, volume)
 
     #------------------------------------------------------------------------
     # /live/pan
@@ -465,11 +476,11 @@ class Set(LoggingObject):
 
     def get_track_pan(self, track_index):
         """ Return the pan level of the given track index (-1..1). """
-        return self.live.query("/live/pan", track_index)[1]
+        return self.live.query("/live/track/get/pan", track_index)[1]
 
     def set_track_pan(self, track_index, pan):
         """ Set the pan level of the given track index (-1..1). """
-        self.live.cmd("/live/pan", track_index, pan)
+        self.live.cmd("/live/track/set/pan", track_index, pan)
 
     #------------------------------------------------------------------------
     # /live/pan
@@ -477,26 +488,26 @@ class Set(LoggingObject):
 
     def get_track_send(self, track_index, send_index):
         """ Return the send level of send send_index """
-        return self.live.query("/live/send", track_index, send_index)[2]
+        return self.live.query("/live/track/get/send", track_index, send_index)[2]
 
     def set_track_send(self, track_index, send_index, value):
         """ Set send level of send send_index """
-        self.live.cmd("/live/send", track_index, send_index, value)
+        self.live.cmd("/live/track/set/send", track_index, send_index, value)
 
     #------------------------------------------------------------------------
-    # /live/pitch
+    # /live/pitch (not included in AlbetonOSC)
     #------------------------------------------------------------------------
 
-    def get_clip_pitch(self, track_index, clip_index):
-        """ Return pitch level of pitch_index for track_index.
+    # def get_clip_pitch(self, track_index, clip_index):
+    #     """ Return pitch level of pitch_index for track_index.
 
-        Note that the LiveOSC callback for pitch does not include
-        track/clip numbers, so doesn't need slicing. """
-        return self.live.query("/live/pitch", track_index, clip_index)
+    #     Note that the LiveOSC callback for pitch does not include
+    #     track/clip numbers, so doesn't need slicing. """
+    #     return self.live.query("/live/pitch", track_index, clip_index)
 
-    def set_clip_pitch(self, track_index, pitch_index, coarse, fine):
-        """ Set pitch level of pitch_index for track_index. """
-        self.live.cmd("/live/pitch", track_index, pitch_index, coarse, fine)
+    # def set_clip_pitch(self, track_index, pitch_index, coarse, fine):
+    #     """ Set pitch level of pitch_index for track_index. """
+    #     self.live.cmd("/live/pitch", track_index, pitch_index, coarse, fine)
 
     #------------------------------------------------------------------------
     # /live/master/volume
@@ -504,55 +515,59 @@ class Set(LoggingObject):
     #------------------------------------------------------------------------
 
     def get_master_volume(self):
-        return self.live.query("/live/master/volume")[0]
+        track_count = self.num_tracks
+        return self.get_track_volume(track_count)
 
     def set_master_volume(self, value):
-        self.live.cmd("/live/master/volume", value)
+        track_count = self.num_tracks
+        return self.set_track_volume(track_count,value)
 
     master_volume = property(get_master_volume, set_master_volume, doc="Master volume (0..1)")
 
     def get_master_pan(self):
         """ Return the master pan level (-1..1). """
-        return self.live.query("/live/master/pan")[0]
+        track_count = self.num_tracks
+        return self.get_track_pan(track_count)
 
     def set_master_pan(self, value):
         """ Set the master pan level (-1..1). """
-        self.live.cmd("/live/master/pan", value)
+        track_count = self.num_tracks()
+        return self.set_track_pan(track_count,value)
 
     master_pan = property(get_master_pan, set_master_pan, doc="Master pan level (-1..1)")
 
     #------------------------------------------------------------------------
-    # /live/track/info
+    # /live/track/info (Not in AbletonOSC unsure it's purpose to begin with)
     #------------------------------------------------------------------------
 
-    def get_track_info(self, track_index):
-        """ Return track and clip information for the given track.
-        Return value is a tuple of the form:
+    # def get_track_info(self, track_index):
+    #     """ Return track and clip information for the given track.
+    #     Return value is a tuple of the form:
 
-        (track_index, foldable, armed, (clip_index, state, length), ... )
-        """
+    #     (track_index, foldable, armed, (clip_index, state, length), ... )
+    #     """
 
-        return self.live.query("/live/track/info", track_index)
+    #     return self.live.query("/live/track/info", track_index)
 
     #------------------------------------------------------------------------
     # /live/clip/info
-    # /live/clip/loopend
+    # /live/clip/loopend (not in AbletonOSC and see no personal use case)
     #------------------------------------------------------------------------
 
-    def get_clip_info(self, track_index, clip_index):
-        return self.live.query("/live/clip/info", track_index, clip_index)
+    # def get_clip_info(self, track_index, clip_index):
+    #     return self.live.query("/live/clip/info", track_index, clip_index)
 
-    def set_clip_loop_end(self, track_index, clip_index, loop_end):
-        self.live.cmd("/live/clip/loopend", track_index, clip_index, loop_end)
+    # def set_clip_loop_end(self, track_index, clip_index, loop_end):
+    #     self.live.cmd("/live/clip/loopend", track_index, clip_index, loop_end)
 
     #------------------------------------------------------------------------
-    # /live/clip/mute
+    # /live/clip/mute (Not in AbletonOSC)
     #------------------------------------------------------------------------
 
-    def set_clip_mute(self, track_index, clip_index, mute):
-        self.live.cmd("/live/clip/mute", track_index, clip_index, mute)
-    def get_clip_mute(self, track_index, clip_index):
-        return self.live.query("/live/clip/mute", track_index, clip_index)[2]
+    # def set_clip_mute(self, track_index, clip_index, mute):
+    #     self.live.cmd("/live/clip/mute", track_index, clip_index, mute)
+    # def get_clip_mute(self, track_index, clip_index):
+    #     return self.live.query("/live/clip/mute", track_index, clip_index)[2]
 
     #------------------------------------------------------------------------
     # /live/clip/create
@@ -560,9 +575,9 @@ class Set(LoggingObject):
     #------------------------------------------------------------------------
 
     def create_clip(self, track_index, clip_index, length):
-        self.live.cmd("/live/clip/create", track_index, clip_index, length)
+        self.live.cmd("/live/clip_slot/create_clip", track_index, clip_index, length)
     def delete_clip(self, track_index, clip_index):
-        self.live.cmd("/live/clip/delete", track_index, clip_index)
+        self.live.cmd("/live/clip_slot/delete_clip", track_index, clip_index)
 
     #------------------------------------------------------------------------
     # /live/clip/add_note
@@ -570,9 +585,9 @@ class Set(LoggingObject):
     #------------------------------------------------------------------------
 
     def add_clip_note(self, track_index, clip_index, note, position, duration, velocity, mute):
-        self.live.cmd("/live/clip/add_note", track_index, clip_index, note, position, duration, velocity, mute)
-    def get_clip_notes(self, track_index, clip_index):
-        return self.live.query("/live/clip/notes", track_index, clip_index, response_address="/live/clip/note")
+        self.live.cmd("/live/clip/add_new_note", track_index, clip_index, note, position, duration, velocity, mute)
+    # def get_clip_notes(self, track_index, clip_index):
+    #     return self.live.query("/live/clip/notes", track_index, clip_index, response_address="/live/clip/note")
 
     #------------------------------------------------------------------------
     # /live/devicelist
@@ -581,35 +596,36 @@ class Set(LoggingObject):
     #------------------------------------------------------------------------
 
     def get_device_list(self, track_index):
-        return self.live.query("/live/devicelist", track_index)
+        return self.live.query("/live/track/get/devices/name", track_index)
 
     def get_device_parameters(self, track_index, device_index):
-        return self.live.query("/live/device", track_index, device_index, response_address="/live/device/allparam")
+        return self.live.query("/live/device/get/parameters/name", track_index, device_index)
 
     def get_device_param(self, track_index, device_index, param_index):
-        return self.live.query("/live/device", track_index, device_index, param_index, response_address="/live/device/param")
+        return self.live.query("/live/device/get/parameter/value", track_index, device_index, param_index)
 
     def set_device_param(self, track_index, device_index, param_index, value):
-        self.live.cmd("/live/device", track_index, device_index, param_index, value)
+        self.live.cmd("/live/device/set/parameter/value", track_index, device_index, param_index, value)
 
     def get_device_parameter_ranges(self, track_index, device_index):
-        return self.live.query("/live/device/range", track_index, device_index)
+        return (self.live.query("/live/device/get/parameters/min",track_index, device_index),
+        self.live.query("/live/device/get/parameters/max",track_index, device_index))
 
     def get_device_parameter_range(self, track_index, device_index, parameter_index):
-        return self.live.query("/live/device/range", track_index, device_index, parameter_index)
+        return self.get_device_parameter_ranges(track_index,device_index)[parameter_index]
 
 
     #------------------------------------------------------------------------
-    # RETURNS
+    # RETURNS (Not in AbletonOSC)
     #------------------------------------------------------------------------
 
-    def get_return_volume(self, return_index):
-        """ Return the volume of the given return indkex (0..1). """
-        return self.live.query("/live/return/volume", return_index)[1]
+    # def get_return_volume(self, return_index):
+    #     """ Return the volume of the given return indkex (0..1). """
+    #     return self.live.query("/live/return/volume", return_index)[1]
 
-    def set_return_volume(self, return_index, volume):
-        """ Set the volume of the given return index (0..1). """
-        self.live.cmd("/live/return/volume", return_index, volume)
+    # def set_return_volume(self, return_index, volume):
+    #     """ Set the volume of the given return index (0..1). """
+    #     self.live.cmd("/live/return/volume", return_index, volume)
 
 
 
@@ -627,7 +643,7 @@ class Set(LoggingObject):
         scan_devices -- queries tracks for devices and their corresponding parameters
         scan_clip_names -- queries clips for their human-readable names
         """
-
+        # NOTE: SCANNING DOES NOT WORK UNTIL IMPLEMENTATION OF INFO GETTERS IS MADE IN AbletonOSC
         #------------------------------------------------------------------------
         # force stop playback before scanning
         #------------------------------------------------------------------------
@@ -648,14 +664,10 @@ class Set(LoggingObject):
         #------------------------------------------------------------------------
         # some kind of limit seems to prevent us querying over 535ish track
         # names... let's do them 256 at a time.
+        # NOTE: No longer necessary since we call get_track_name() once for each track
         #------------------------------------------------------------------------
         track_index = 0
-        track_names = []
-        while track_index < track_count:
-            tracks_remaining = self.max_tracks_per_query if track_count > track_index + self.max_tracks_per_query else track_count - track_index
-            self.log_debug("  (querying from %d, count %d)" % (track_index, tracks_remaining))
-            track_names = track_names + self.get_track_names(track_index, tracks_remaining)
-            track_index += self.max_tracks_per_query
+        track_names = self.get_track_names()
 
         self.log_info("scan_layout: Got %d track names" % len(track_names))
         assert(track_count == len(track_names))
@@ -748,16 +760,16 @@ class Set(LoggingObject):
                             device.parameters.append(param)
 
         #--------------------------------------------------------------------------
-        # now scan scenes
+        # now scan scenes !!!!! DO NOT SCAN SCENES FOR THE LOVE OF GOD !!!!!
         #--------------------------------------------------------------------------
-        scene_count = self.num_scenes
-        scene_names = self.scene_names
-        for index, scene_name in enumerate(scene_names):
-            scene = Scene(self, index)
-            scene.name = scene_name
-            self.scenes.append(scene)
+        # scene_count = self.num_scenes
+        # scene_names = self.scene_names
+        # for index, scene_name in enumerate(scene_names):
+        #     scene = Scene(self, index)
+        #     scene.name = scene_name
+        #     self.scenes.append(scene)
         
-        self.scanned = True
+        # self.scanned = True
 
     def load_or_scan(self, filename="set", **kwargs):
         """ From from file; if file does not exist, scan, then save. """
